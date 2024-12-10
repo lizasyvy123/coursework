@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Список працівників</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+    {% if 'user_id' in session %}
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/employees">Облік часу</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'employees' %}active{% endif %}" href="/employees">Список працівників</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'worktime_records' %}active{% endif %}" href="/worktime_records">Робочий час</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'reports' %}active{% endif %}" href="/reports">Звіти</a>
+                    </li>
+                    {% if session['role'] == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'add_employee' %}active{% endif %}" href="{{ url_for('add_employee') }}">Додати працівника</a>
+                    </li>
+                    {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link text-danger" href="{{ url_for('logout') }}">Вийти</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <div class="container mt-4">
+        <h1 class="mb-4 text-center">Список працівників</h1>
+
+        {% if session['role'] == 'admin' %}
+        <div class="mb-3 text-end">
+            <form action="{{ url_for('generate_logins') }}" method="POST">
+                <button type="submit" class="btn btn-primary">Згенерувати логіни</button>
+            </form>
+        </div>
+        {% endif %}
+
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Прізвище</th>
+                        <th>Ім'я</th>
+                        <th>Посада</th>
+                        <th class="text-center">Дії</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for employee in employees %}
+                    <tr id="employee-row-{{ employee[0] }}">
+                        <td>{{ employee[0] }}</td>
+                        <td>{{ employee[2] }}</td>
+                        <td>{{ employee[1] }}</td>
+                        <td>{{ employee[3] }}</td>
+                        <td>
+                            <div class="action-buttons">
+                                {% if session['role'] == 'admin' or session['employee_id'] == employee[0] %}
+                                <a href="/edit/{{ employee[0] }}" class="btn btn-sm btn-warning">Редагувати</a>
+                                {% endif %}
+                                {% if session['role'] == 'admin' %}
+                                <button class="btn btn-sm btn-danger"
+                                        data-id="{{ employee[0] }}"
+                                        data-name="{{ employee[2] }} {{ employee[1] }}"
+                                        onclick="showDeleteModal(this)">
+                                    Видалити
+                                </button>
+                                {% endif %}
+                                <a href="/worktime/{{ employee[0] }}" class="btn btn-sm btn-secondary">Облік часу</a>
+                                <a href="/charts/employee/{{ employee[0] }}" target="_blank" class="btn btn-sm btn-success">Графік годин</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                
+            </table>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">Підтвердження видалення</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Ви впевнені, що хочете видалити працівника <strong id="employeeName"></strong>?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Скасувати</button>
+                    <button type="button" class="btn btn-danger" id="confirmDelete">Видалити</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let employeeIdToDelete = null;
+
+        function showDeleteModal(button) {
+            employeeIdToDelete = button.getAttribute('data-id');
+            const employeeName = button.getAttribute('data-name');
+            document.getElementById('employeeName').textContent = employeeName;
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            deleteModal.show();
+        }
+
+        document.getElementById('confirmDelete').addEventListener('click', function() {
+            if (employeeIdToDelete) {
+                fetch(`/delete/${employeeIdToDelete}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => {
+                    if (response.ok) {
+                        const row = document.getElementById(`employee-row-${employeeIdToDelete}`);
+                        if (row) row.remove();
+                        alert('Працівника успішно видалено.');
+                    } else {
+                        alert('Помилка при видаленні.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Помилка:', error);
+                    alert('Помилка під час виконання запиту.');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

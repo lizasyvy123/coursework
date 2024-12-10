@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Записи робочого часу</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <!-- Навігаційна панель -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/employees">Облік часу</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'employees' %}active{% endif %}" href="/employees">Список працівників</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'worktime_records' %}active{% endif %}" href="/worktime_records">Робочий час</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'reports' %}active{% endif %}" href="/reports">Звіти</a>
+                    </li>
+                    {% if session['role'] == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'add_employee' %}active{% endif %}" href="{{ url_for('add_employee') }}">Додати працівника</a>
+                    </li>
+                    {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link text-danger" href="{{ url_for('logout') }}">Вийти</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основний вміст -->
+    <div class="container mt-4">
+        <h1 class="text-center mb-4">Записи робочого часу</h1>
+
+        <!-- Форма фільтрації -->
+        <form method="GET" action="/worktime_records" class="mb-4">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label for="employee" class="form-label">Працівник:</label>
+                    <select id="employee" name="employee_id" class="form-select">
+                        <option value="">Усі працівники</option>
+                        {% for employee in employees %}
+                        <option value="{{ employee[0] }}" {% if employee[0] == request.args.get('employee_id') %}selected{% endif %}>
+                            {{ employee[1] }} {{ employee[2] }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="date" class="form-label">Дата:</label>
+                    <input type="date" id="date" name="date" value="{{ request.args.get('date', '') }}" class="form-control">
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary w-100">Фільтрувати</button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Таблиця записів -->
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered">
+                <thead class="table-primary">
+                    <tr>
+                        <th>ID</th>
+                        <th>Прізвище</th>
+                        <th>Ім'я</th>
+                        <th>Дата</th>
+                        <th>Час початку</th>
+                        <th>Час завершення</th>
+                        <th>Тривалість (хв)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in records %}
+                    <tr>
+                        <td>{{ record[0] }}</td>
+                        <td>{{ record[1] }}</td>
+                        <td>{{ record[2] }}</td>
+                        <td>{{ record[3] }}</td>
+                        <td>
+                            {% if record[4] %}
+                                {{ record[4] }}
+                            {% else %}
+                                <span class="text-muted">Не завершено</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if record[5] %}
+                                {{ record[5] }}
+                            {% else %}
+                                <span class="text-muted">Не розраховано</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if record[6] %}
+                                {{ record[6] }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Кнопка назад -->
+        <div class="mt-4 text-center">
+            <a href="/employees" class="btn btn-secondary">Назад до списку працівників</a>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

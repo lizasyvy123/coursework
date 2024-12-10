@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Звіти</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <!-- Навігаційна панель -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/employees">Облік часу</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'employees' %}active{% endif %}" href="/employees">Список працівників</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'worktime_records' %}active{% endif %}" href="/worktime_records">Робочий час</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'reports' %}active{% endif %}" href="/reports">Звіти</a>
+                    </li>
+                    {% if session['role'] == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'add_employee' %}active{% endif %}" href="{{ url_for('add_employee') }}">Додати працівника</a>
+                    </li>
+                    {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link text-danger" href="{{ url_for('logout') }}">Вийти</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основний контент -->
+    <div class="container mt-4">
+        <h1 class="text-center mb-4">Звіти</h1>
+
+        <!-- Форма фільтрації -->
+        <form method="GET" action="/reports" class="mb-4">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label for="employee" class="form-label">Працівник:</label>
+                    <select id="employee" name="employee_id" class="form-select">
+                        <option value="">Усі працівники</option>
+                        {% for employee in employees %}
+                        <option value="{{ employee[0] }}" {% if selected_employee_id == employee[0] %}selected{% endif %}>
+                            {{ employee[1] }} {{ employee[2] }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="start_date" class="form-label">Дата початку:</label>
+                    <input type="date" id="start_date" name="start_date" value="{{ start_date }}" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label for="end_date" class="form-label">Дата завершення:</label>
+                    <input type="date" id="end_date" name="end_date" value="{{ end_date }}" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100">Фільтрувати</button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Інформація про період -->
+        {% if start_date or end_date %}
+        <p><strong>Звітний період:</strong>
+            {% if start_date %}з {{ start_date }}{% endif %}
+            {% if end_date %}до {{ end_date }}{% endif %}
+        </p>
+        {% endif %}
+
+        <!-- Загальна кількість годин -->
+        <h2 class="mt-4">Загальна кількість годин</h2>
+        <table class="table table-striped table-bordered">
+            <thead class="table-primary">
+                <tr>
+                    <th>Прізвище</th>
+                    <th>Ім'я</th>
+                    <th>Загальна кількість годин</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in report_data %}
+                <tr>
+                    <td>{{ row[0] }}</td>
+                    <td>{{ row[1] }}</td>
+                    <td>{{ row[2] // 60 }} год. {{ row[2] % 60 }} хв.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Деталі записів робочого часу -->
+        {% if selected_employee_id %}
+        <h2 class="mt-4">Деталі робочого часу</h2>
+        <table class="table table-striped table-bordered">
+            <thead class="table-primary">
+                <tr>
+                    <th>Прізвище</th>
+                    <th>Ім'я</th>
+                    <th>Дата</th>
+                    <th>Час початку</th>
+                    <th>Час завершення</th>
+                    <th>Тривалість (хв)</th>
+                    <th>Дії</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for detail in worktime_details %}
+                <tr>
+                    <td>{{ detail[0] }}</td>
+                    <td>{{ detail[1] }}</td>
+                    <td>{{ detail[2] }}</td>
+                    <td>{{ detail[3] }}</td>
+                    <td>{{ detail[4] }}</td>
+                    <td>{{ detail[5] }}</td>
+                    <td>
+                        <a href="/delete_worktime/{{ detail[6] }}" class="btn btn-danger btn-sm">Видалити</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+
+        <!-- Додаємо посилання на графік -->
+        <div class="mt-4">
+            <a href="/charts/total_hours" target="_blank" class="btn btn-info">Графік загальних годин</a>
+        </div>
+        <br>
+        <a href="/employees" class="btn btn-secondary">Назад до списку працівників</a>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
